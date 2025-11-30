@@ -28,7 +28,7 @@
     </div>
 
     <div class="bg-light d-flex flex-column align-items-center vh-100">
-        <a href="/frontend/index.html" class="btn btn-outline-primary position-absolute top-0 end-0 m-2"
+        <a href="/" class="btn btn-outline-primary position-absolute top-0 end-0 m-2"
             role="button">Создать конспект</a>
         <h2 class="my-4">Список заданий</h2 class="m">
         <table class="table w-75 table-hover table-bordered" id="tasksTable">
@@ -99,9 +99,11 @@
                 return;
             }
 
+
+
             tableBody.innerHTML = tasks.map(task => `
                 <tr>
-                    <td>${task.createDate}</th>
+                    <td>${task.createdAt}</th>
                     <td>${task.id}</td>
                     <td>${task.title}</td>
                     <td>
@@ -113,7 +115,7 @@
                     <td>${getDownloadButton(task)}</td>
                     <td>${getShowErrorButton(task)}</td>
                 </tr>
-            `);
+            `).join('');
         }
 
         async function loadTasks() {
@@ -126,13 +128,11 @@
 
             if (!response.ok) {
                 console.error("Ошибка при получении данных");
-                // TODO: return
+                return;
             }
-            // TODO: uncomment
-            // const tasks = await response.json();
-            let tasks = [
-                { createDate: '10.04.2012 | 21:32', id: '3dd23', title: 'title', videoUrl: 'dslkd', status: 'completed', errorMessage: 'errrrror' }
-            ];
+            
+            const tasks = await response.json();
+
             renderTable(tasks);
         }
 

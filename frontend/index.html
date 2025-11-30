@@ -10,7 +10,7 @@
 
 <body>
     <div class="bg-light d-flex flex-column justify-content-center align-items-center vh-100">
-    <a href="tasks/index.html" class="btn btn-outline-secondary position-absolute top-0 end-0 m-2" role="button">Список заданий</a>
+    <a href="/tasks" class="btn btn-outline-secondary position-absolute top-0 end-0 m-2" role="button">Список заданий</a>
 
         <form class="w-50 card p-2 align-items-center" id="taskForm">
             <h3>Генерация конспекта</h3>
@@ -45,13 +45,13 @@
                     body: JSON.stringify(requestBody)
                 });
 
-                // TODO: recomment
-                // if (!response.ok) {
-                //     alert("Ошибка при отправке запроса");
-                //     return;
-                // }
+                if (!response.ok) {
+                    respJson = await response.json();
+                    alert(respJson.error);
+                    return;
+                }
 
-                window.location.href = "tasks/index.html";
+                window.location.href = "/tasks";
             }
             catch (err) {
                 console.error(err)
