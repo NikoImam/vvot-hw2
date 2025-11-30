@@ -44,62 +44,6 @@
                 </tr>
             </thead>
             <tbody class="table-group-divider" id="tasksTableBody">
-                <tr>
-                    <td>29.11.2025 | 19:06</th>
-                    <td>fd3w98eed</td>
-                    <td>Лекция 1</td>
-                    <td>
-                        <p><a href="#"
-                                class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-75-hover">Ссылка</a>
-                        </p>
-                    </td>
-                    <td><span class="badge text-bg-secondary">В очереди</span></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>29.11.2025 | 19:06</th>
-                    <td>fd3w98eed</td>
-                    <td>Лекция 1</td>
-                    <td>
-                        <p><a href="https://github.com/NikoImam/vvot-hw2/tree/dev/frontend" target="_blank"
-                                rel="noopener noreferrer"
-                                class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-75-hover">Ссылка</a>
-                        </p>
-                    </td>
-                    <td><span class="badge text-bg-danger">Ошибка</span></td>
-                    <td></td>
-                    <td><button type="button" class="btn btn-outline-danger py-0"
-                            onclick="showErrorMessage({id: '21c32', errorMessage: 'Ошибка в ссылке видео'})">Показать</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>29.11.2025 | 19:06</th>
-                    <td>fd3w98eed</td>
-                    <td>Лекция 1</td>
-                    <td>
-                        <p><a href="#"
-                                class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-75-hover">Ссылка</a>
-                        </p>
-                    </td>
-                    <td><span class="badge text-bg-warning">В обработке</span></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td>29.11.2025 | 19:06</th>
-                    <td>fd3w98eed</td>
-                    <td>Лекция 1</td>
-                    <td>
-                        <p><a href="#"
-                                class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-75-hover">Ссылка</a>
-                        </p>
-                    </td>
-                    <td><span class="badge text-bg-success">Успешно завершено</span></td>
-                    <td><a href="/frontend/file.txt" download="file.txt"><button type="button"
-                                class="btn btn-outline-primary py-0">Скачать</button></a></td>
-                    <td></td>
-                </tr>
             </tbody>
         </table>
     </div>
@@ -184,11 +128,11 @@
                 console.error("Ошибка при получении данных");
                 // TODO: return
             }
-
+            // TODO: uncomment
             // const tasks = await response.json();
             let tasks = [
-                {createDate:'10.04.2012 | 21:32', id: '3dd23', title:'title', videoUrl: 'dslkd', status: 'completed', errorMessage: 'errrrror'}
-            ]; 
+                { createDate: '10.04.2012 | 21:32', id: '3dd23', title: 'title', videoUrl: 'dslkd', status: 'completed', errorMessage: 'errrrror' }
+            ];
             renderTable(tasks);
         }
 
