@@ -28,9 +28,9 @@
     </div>
 
     <div class="bg-light d-flex flex-column align-items-center vh-100">
-        <button type="button" class="btn btn-outline-primary m-2 mb-3"
-            onclick="window.location.href='/frontend/index.html'">Создать конспект</button>
-        <h2 class="mb-2">Список заданий</h2 class="m">
+        <a href="/frontend/index.html" class="btn btn-outline-primary position-absolute top-0 end-0 m-2"
+            role="button">Создать конспект</a>
+        <h2 class="my-4">Список заданий</h2 class="m">
         <table class="table w-75 table-hover table-bordered" id="tasksTable">
             <thead>
                 <tr>
@@ -62,13 +62,16 @@
                     <td>fd3w98eed</td>
                     <td>Лекция 1</td>
                     <td>
-                        <p><a href="#"
+                        <p><a href="https://github.com/NikoImam/vvot-hw2/tree/dev/frontend" target="_blank"
+                                rel="noopener noreferrer"
                                 class="link-info link-offset-2 link-underline-opacity-25 link-underline-opacity-75-hover">Ссылка</a>
                         </p>
                     </td>
                     <td><span class="badge text-bg-danger">Ошибка</span></td>
                     <td></td>
-                    <td><button type="button" class="btn btn-outline-danger py-0" onclick="showErrorMessage({id: '21c32', errorMessage: 'Ошибка в ссылке видео'})">Показать</button></td>
+                    <td><button type="button" class="btn btn-outline-danger py-0"
+                            onclick="showErrorMessage({id: '21c32', errorMessage: 'Ошибка в ссылке видео'})">Показать</button>
+                    </td>
                 </tr>
                 <tr>
                     <td>29.11.2025 | 19:06</th>
@@ -93,7 +96,8 @@
                         </p>
                     </td>
                     <td><span class="badge text-bg-success">Успешно завершено</span></td>
-                    <td><a href="/frontend/file.txt" download="file.txt"><button type="button" class="btn btn-outline-primary py-0">Скачать</button></a></td>
+                    <td><a href="/frontend/file.txt" download="file.txt"><button type="button"
+                                class="btn btn-outline-primary py-0">Скачать</button></a></td>
                     <td></td>
                 </tr>
             </tbody>
@@ -118,31 +122,27 @@
             return `<span class="badge text-bg-${statusInfo.class}">${statusInfo.text}</span>`;
         }
 
-        function downloadPdf(taskId) {
-            window.location.href = `/pdf/download/${taskId}`;
-        }
-
         function getDownloadButton(task) {
-            if (task.status === 'completed' && task.pdfUrl) {
+            if (task.status === 'completed') {
                 return `<a href="/pdf/download/${task.id}" download="${task.title}.pdf"><button type="button" class="btn btn-outline-primary py-0">Скачать</button></a>`;
             }
 
             return '';
         }
 
-        function showErrorMessage(task) {
-            document.getElementById('errorTaskId').textContent = task.id;
-            document.getElementById('errorText').textContent = task.errorMessage;
+        function showErrorMessage(id, message) {
+            document.getElementById('errorTaskId').textContent = id;
+            document.getElementById('errorText').textContent = message;
 
             const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
             errorModal.show();
 
-            window.currentErrorTaskId = taskId;
+            window.currentErrorTaskId = id;
         }
 
         function getShowErrorButton(task) {
             if (task.status === 'error' && task.errorMessage) {
-                return `<button type="button" class="btn btn-outline-danger py-0" onclick="showErrorMessage('${task.errorMessage}')">Показать</button>`;
+                return `<button type="button" class="btn btn-outline-danger py-0" onclick="showErrorMessage('${task.id}', '${task.errorMessage}')">Показать</button>`;
             }
 
             return '';
@@ -182,9 +182,13 @@
 
             if (!response.ok) {
                 console.error("Ошибка при получении данных");
+                // TODO: return
             }
 
-            const tasks = await response.json();
+            // const tasks = await response.json();
+            let tasks = [
+                {createDate:'10.04.2012 | 21:32', id: '3dd23', title:'title', videoUrl: 'dslkd', status: 'completed', errorMessage: 'errrrror'}
+            ]; 
             renderTable(tasks);
         }
 
