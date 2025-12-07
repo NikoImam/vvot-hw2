@@ -1,21 +1,16 @@
 import ydb
 import os
 import json
-import uuid
 from datetime import datetime, timezone, timedelta
-import pytz
 
-YC_TOKEN = os.getenv('YC_TOKEN')
-
-endpoint = "grpcs://ydb.serverless.yandexcloud.net:2135"
-database = "/ru-central1/b1g71e95h51okii30p25/etn90if7ni01era55tu0" 
-credentials=ydb.AccessTokenCredentials(YC_TOKEN)
+endpoint = os.getenv('YDB_ENDPOINT')
+database = os.getenv('YDB_DATABASE') 
 
 def get_all_tasks():
     driver = ydb.Driver(
         endpoint=endpoint,
         database=database,
-        credentials=credentials
+        credentials=ydb.iam.MetadataUrlCredentials()
     )
 
     driver.wait(fail_fast=True, timeout=5)
@@ -41,7 +36,7 @@ def get_all_tasks():
         created_at_dt = datetime.fromtimestamp(row.created_at / 1000000, tz=timezone(timedelta(hours=3)))
         
         task = {
-            "id": row.id,
+            "id": str(row.id),
             "createdAt": created_at_dt.strftime('%d.%m.%Y | %H:%M:%S'),
             "title": row.title,
             "videoUrl": row.video_url if row.video_url else "",

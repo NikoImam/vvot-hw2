@@ -2,31 +2,27 @@ import ydb
 import os
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
-import pytz
+from datetime import datetime
 
-YC_TOKEN = os.getenv('YC_TOKEN')
+endpoint = os.getenv('YDB_ENDPOINT')
+database = os.getenv('YDB_DATABASE') 
 
-endpoint = "grpcs://ydb.serverless.yandexcloud.net:2135"
-database = "/ru-central1/b1g71e95h51okii30p25/etn90if7ni01era55tu0" 
-credentials=ydb.AccessTokenCredentials(YC_TOKEN)
-
-async def create_task(title: str, video_url: str):
+def create_task(title: str, video_url: str):
     driver = ydb.Driver(
         endpoint=endpoint,
         database=database,
-        credentials=credentials
+        credentials=ydb.iam.MetadataUrlCredentials()
     )
 
     driver.wait(fail_fast=True, timeout=5)
     
     session = driver.table_client.session().create()
     
-    task_id = str(uuid.uuid4())
+    task_id = uuid.uuid4()
     created_at = datetime.now()
     
     query = """
-        DECLARE $id AS Utf8;
+        DECLARE $id AS Uuid;
         DECLARE $created_at AS Timestamp;
         DECLARE $title AS Utf8;
         DECLARE $video_url AS Utf8;
@@ -57,7 +53,7 @@ async def create_task(title: str, video_url: str):
 
     return task_id
 
-async def handler(event, context):
+def handler(event, context):
     if 'body' in event:
         if event.get('isBase64Encoded', False):
             import base64
@@ -96,7 +92,7 @@ async def handler(event, context):
             }
         }
     
-    await create_task(title, video_url)
+    id = create_task(title, video_url)
 
     return {
         "statusCode": 200
