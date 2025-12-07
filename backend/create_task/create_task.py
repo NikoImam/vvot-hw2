@@ -3,9 +3,13 @@ import os
 import json
 import uuid
 from datetime import datetime
+import boto3
 
 endpoint = os.getenv('YDB_ENDPOINT')
-database = os.getenv('YDB_DATABASE') 
+database = os.getenv('YDB_DATABASE')
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+check_n_download_q_url = os.getenv('CHECK_N_DOWNLOAD_Q_URL')
 
 def create_task(title: str, video_url: str):
     driver = ydb.Driver(
@@ -33,7 +37,7 @@ def create_task(title: str, video_url: str):
         VALUES ($id, $created_at, $title, $video_url, $status, $error_message);
     """
     
-    parameters = {
+    params = {
         '$id': task_id,
         '$created_at': created_at,
         '$title': title,
@@ -45,13 +49,27 @@ def create_task(title: str, video_url: str):
     prepared_query = session.prepare(query)
     session.transaction().execute(
         prepared_query,
-        parameters,
+        params,
         commit_tx=True
     )
     
     driver.stop()
 
     return task_id
+
+def send_message_to_check_n_download_q(id, video_url):
+    s3_client = boto3.client(
+        service_name='sqs',
+        endpoint_url='https://message-queue.api.cloud.yandex.net',
+        region_name='ru-central1',
+        aws_access_key_id=aws_access_key_id,
+        aws_secret_access_key=aws_secret_access_key
+    )
+
+    s3_client.send_message(
+        QueueUrl=check_n_download_q_url,
+        MessageBody=json.dumps({"id": id, "video_url": video_url})
+    )
 
 def handler(event, context):
     if 'body' in event:
@@ -93,6 +111,7 @@ def handler(event, context):
         }
     
     id = create_task(title, video_url)
+    send_message_to_check_n_download_q(str(id), video_url)
 
     return {
         "statusCode": 200

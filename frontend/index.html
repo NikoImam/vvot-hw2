@@ -22,7 +22,10 @@
                 <span class="input-group-text">Название лекции</span>
                 <input type="text" class="form-control" placeholder="Название" id="lectureTitleInput">
             </div>
-            <button type="submit" class="btn btn-primary mt-3 mb-2">Создать конспект</button>
+            <button type="submit" class="btn btn-primary mt-3 mb-2" id="submitBtn">
+                <span class="spinner-border spinner-border-sm d-none" aria-hidden="true" id="submitBtnSpinner"></span>
+                Создать конспект
+            </button>
         </form>
     </div>
 
@@ -31,12 +34,22 @@
         document.getElementById('taskForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            const videoLink = document.getElementById('urlInput').value;
-            const lectureTitle = document.getElementById('lectureTitleInput').value;
+            const urlInput = document.getElementById('urlInput')
+            const lectureTitleInput = document.getElementById('lectureTitleInput')
+            const videoLink = urlInput.value;
+            const lectureTitle = lectureTitleInput.value;
 
             const requestBody = { "title": lectureTitle, "link": videoLink }
 
+            const submitBtn = document.getElementById('submitBtn')
+            const submitBtnSpinner = document.getElementById('submitBtnSpinner')
+
             try {
+                submitBtn.disabled = true
+                submitBtnSpinner.classList.remove('d-none')
+                urlInput.disabled = true
+                lectureTitleInput.disabled = true
+
                 const response = await fetch('/task/create', {
                     method: "POST",
                     headers: {
@@ -48,6 +61,12 @@
                 if (!response.ok) {
                     respJson = await response.json();
                     alert(respJson.error);
+
+                    submitBtn.disabled = false
+                    submitBtnSpinner.classList.add('d-none')
+                    urlInput.disabled = false
+                    lectureTitleInput.disabled = false
+
                     return;
                 }
 
@@ -56,6 +75,11 @@
             catch (err) {
                 console.error(err)
                 alert("Ошибка при выполнении запроса");
+
+                submitBtn.disabled = false
+                submitBtnSpinner.classList.add('d-none')
+                urlInput.disabled = false
+                lectureTitleInput.disabled = false
             }
         })
     </script>
