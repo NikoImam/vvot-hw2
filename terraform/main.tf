@@ -14,6 +14,11 @@ provider "yandex" {
   folder_id = var.folder_id
 }
 
+resource "yandex_ydb_database_serverless" "db" {
+  name      = "${var.prefix}-db"
+  folder_id = var.folder_id
+}
+
 resource "yandex_iam_service_account" "sa" {
   name = "${var.prefix}-sa"
 }
@@ -70,6 +75,10 @@ resource "yandex_iam_service_account_static_access_key" "sa_static_key" {
   service_account_id = yandex_iam_service_account.sa.id
 }
 
+resource "yandex_iam_service_account_api_key" "sa_api_key" {
+  service_account_id = yandex_iam_service_account.sa.id
+}
+
 resource "yandex_lockbox_secret" "secret" {
   name = "${var.prefix}-secret"
 }
@@ -86,11 +95,11 @@ resource "yandex_lockbox_secret_version" "secret_version" {
     key        = "AWS_SECRET_ACCESS_KEY"
     text_value = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
   }
-}
 
-resource "yandex_ydb_database_serverless" "db" {
-  name      = "${var.prefix}-db"
-  folder_id = var.folder_id
+  entries {
+    key        = "API_KEY"
+    text_value = yandex_iam_service_account_api_key.sa_api_key.secret_key
+  }
 }
 
 resource "yandex_ydb_table" "tasks-table" {
@@ -137,6 +146,7 @@ resource "yandex_ydb_table" "tasks-table" {
 
   depends_on = [
     yandex_ydb_database_serverless.db,
+    yandex_iam_service_account.sa,
     yandex_resourcemanager_folder_iam_member.ydb_editor
   ]
 }
@@ -173,50 +183,9 @@ resource "yandex_storage_object" "tasks_page" {
   content_type = "text/html"
 }
 
-data "archive_file" "create_task_func_zip" {
-  type        = "zip"
-  output_path = "./create_task_func.zip"
-
-  source {
-    content  = file("../backend/create_task/create_task.py")
-    filename = "index.py"
-  }
-
-  source {
-    content  = file("../backend/create_task/requirements.txt")
-    filename = "requirements.txt"
-  }
-}
-
-data "archive_file" "get_all_tasks_func_zip" {
-  type        = "zip"
-  output_path = "./get_all_tasks_func.zip"
-
-  source {
-    content  = file("../backend/get_all_tasks/get_all_tasks.py")
-    filename = "index.py"
-  }
-
-  source {
-    content  = file("../backend/get_all_tasks/requirements.txt")
-    filename = "requirements.txt"
-  }
-}
-
-data "archive_file" "check_n_download_func_zip" {
-  type        = "zip"
-  output_path = "./check_n_download_func.zip"
-
-  source {
-    content  = file("../backend/check_n_download/check_n_download.py")
-    filename = "index.py"
-  }
-
-  source {
-    content  = file("../backend/check_n_download/requirements.txt")
-    filename = "requirements.txt"
-  }
-}
+# ==========================
+#       Message Queues
+# ==========================
 
 resource "yandex_message_queue" "check_url_n_download_video_q" {
   name                       = "${var.prefix}-check-url-download-video-q"
@@ -239,7 +208,71 @@ data "yandex_message_queue" "check_url_n_download_video_q" {
   secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
 
   depends_on = [yandex_message_queue.check_url_n_download_video_q]
+}
 
+resource "yandex_message_queue" "extract_audio_q" {
+  name                       = "${var.prefix}-extract-audio-q"
+  fifo_queue                 = false
+  message_retention_seconds  = 60 * 60 * 24
+  visibility_timeout_seconds = 60 * 30
+
+  access_key = yandex_iam_service_account_static_access_key.sa_static_key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
+
+  depends_on = [
+    yandex_resourcemanager_folder_iam_member.ymq_admin,
+    yandex_iam_service_account_static_access_key.sa_static_key
+  ]
+}
+
+data "yandex_message_queue" "extract_audio_q" {
+  name       = yandex_message_queue.extract_audio_q.name
+  access_key = yandex_iam_service_account_static_access_key.sa_static_key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
+
+  depends_on = [yandex_message_queue.extract_audio_q]
+}
+
+resource "yandex_message_queue" "recog_audio_q" {
+  name                       = "${var.prefix}-recog-audio-q"
+  fifo_queue                 = false
+  message_retention_seconds  = 60 * 60 * 24
+  visibility_timeout_seconds = 60 * 30
+
+  access_key = yandex_iam_service_account_static_access_key.sa_static_key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
+
+  depends_on = [
+    yandex_resourcemanager_folder_iam_member.ymq_admin,
+    yandex_iam_service_account_static_access_key.sa_static_key
+  ]
+}
+
+data "yandex_message_queue" "recog_audio_q" {
+  name       = yandex_message_queue.recog_audio_q.name
+  access_key = yandex_iam_service_account_static_access_key.sa_static_key.access_key
+  secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
+
+  depends_on = [yandex_message_queue.recog_audio_q]
+}
+
+# ==========================
+#         Functions
+# ==========================
+
+data "archive_file" "create_task_func_zip" {
+  type        = "zip"
+  output_path = "./create_task_func.zip"
+
+  source {
+    content  = file("../backend/create_task/create_task.py")
+    filename = "index.py"
+  }
+
+  source {
+    content  = file("../backend/create_task/requirements.txt")
+    filename = "requirements.txt"
+  }
 }
 
 resource "yandex_function" "create_task_func" {
@@ -250,6 +283,7 @@ resource "yandex_function" "create_task_func" {
   execution_timeout  = 30
   service_account_id = yandex_iam_service_account.sa.id
   user_hash          = "v1.0"
+  folder_id          = var.folder_id
 
   content {
     zip_filename = data.archive_file.create_task_func_zip.output_path
@@ -276,27 +310,54 @@ resource "yandex_function" "create_task_func" {
   }
 }
 
-resource "yandex_message_queue" "extract_audio_q" {
-  name                       = "${var.prefix}-extract-audio-q"
-  fifo_queue                 = false
-  message_retention_seconds  = 60 * 60 * 24
-  visibility_timeout_seconds = 60 * 60 * 1
+data "archive_file" "get_all_tasks_func_zip" {
+  type        = "zip"
+  output_path = "./get_all_tasks_func.zip"
 
-  access_key = yandex_iam_service_account_static_access_key.sa_static_key.access_key
-  secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
+  source {
+    content  = file("../backend/get_all_tasks/get_all_tasks.py")
+    filename = "index.py"
+  }
 
-  depends_on = [
-    yandex_resourcemanager_folder_iam_member.ymq_admin,
-    yandex_iam_service_account_static_access_key.sa_static_key
-  ]
+  source {
+    content  = file("../backend/get_all_tasks/requirements.txt")
+    filename = "requirements.txt"
+  }
 }
 
-data "yandex_message_queue" "extract_audio_q" {
-  name       = yandex_message_queue.extract_audio_q.name
-  access_key = yandex_iam_service_account_static_access_key.sa_static_key.access_key
-  secret_key = yandex_iam_service_account_static_access_key.sa_static_key.secret_key
+resource "yandex_function" "get_all_tasks_func" {
+  name               = "${var.prefix}-get-all-tasks"
+  runtime            = "python312"
+  entrypoint         = "index.handler"
+  memory             = 512
+  execution_timeout  = 30
+  service_account_id = yandex_iam_service_account.sa.id
+  user_hash          = "v1.0"
+  folder_id          = var.folder_id
 
-  depends_on = [yandex_message_queue.extract_audio_q]
+  content {
+    zip_filename = data.archive_file.get_all_tasks_func_zip.output_path
+  }
+
+  environment = {
+    YDB_ENDPOINT = "grpcs://${yandex_ydb_database_serverless.db.ydb_api_endpoint}"
+    YDB_DATABASE = yandex_ydb_database_serverless.db.database_path
+  }
+}
+
+data "archive_file" "check_n_download_func_zip" {
+  type        = "zip"
+  output_path = "./check_n_download_func.zip"
+
+  source {
+    content  = file("../backend/check_n_download/check_n_download.py")
+    filename = "index.py"
+  }
+
+  source {
+    content  = file("../backend/check_n_download/requirements.txt")
+    filename = "requirements.txt"
+  }
 }
 
 resource "yandex_function" "check_n_download_func" {
@@ -307,6 +368,7 @@ resource "yandex_function" "check_n_download_func" {
   execution_timeout  = 30
   service_account_id = yandex_iam_service_account.sa.id
   user_hash          = "v1.0"
+  folder_id          = var.folder_id
 
   content {
     zip_filename = data.archive_file.check_n_download_func_zip.output_path
@@ -334,6 +396,118 @@ resource "yandex_function" "check_n_download_func" {
   }
 }
 
+data "archive_file" "extract_audio_func_zip" {
+  type        = "zip"
+  output_path = "./extract_audio_func.zip"
+
+  source_dir = "../backend/extract_audio"
+}
+
+resource "yandex_storage_object" "extract_audio_func_zip_obj" {
+  bucket = yandex_storage_bucket.bucket.bucket
+  key    = "extract_audio_func.zip"
+  source = data.archive_file.extract_audio_func_zip.output_path
+}
+
+resource "yandex_function" "extract_audio_func" {
+  name               = "${var.prefix}-extract-audio"
+  runtime            = "bash-2204"
+  entrypoint         = "handler.sh"
+  memory             = 2048
+  execution_timeout  = 60 * 10
+  service_account_id = yandex_iam_service_account.sa.id
+  user_hash          = data.archive_file.extract_audio_func_zip.output_sha256
+  folder_id          = var.folder_id
+
+  package {
+    bucket_name = yandex_storage_bucket.bucket.bucket
+    object_name = yandex_storage_object.extract_audio_func_zip_obj.key
+  }
+
+  environment = {
+    BUCKET_NAME       = yandex_storage_bucket.bucket.bucket
+    RECOG_AUDIO_Q_URL = data.yandex_message_queue.recog_audio_q.url
+  }
+
+  secrets {
+    id                   = yandex_lockbox_secret.secret.id
+    version_id           = yandex_lockbox_secret_version.secret_version.id
+    key                  = "AWS_ACCESS_KEY_ID"
+    environment_variable = "AWS_ACCESS_KEY_ID"
+  }
+
+  secrets {
+    id                   = yandex_lockbox_secret.secret.id
+    version_id           = yandex_lockbox_secret_version.secret_version.id
+    key                  = "AWS_SECRET_ACCESS_KEY"
+    environment_variable = "AWS_SECRET_ACCESS_KEY"
+  }
+
+  depends_on = [data.archive_file.extract_audio_func_zip]
+}
+
+data "archive_file" "recog_audio_n_create_pdf_func_zip" {
+  type        = "zip"
+  output_path = "./recog_audio_n_create_pdf_func.zip"
+
+  source {
+    content  = file("../backend/recog_audio_n_create_pdf/recog_audio_n_create_pdf.py")
+    filename = "index.py"
+  }
+
+  source {
+    content  = file("../backend/recog_audio_n_create_pdf/requirements.txt")
+    filename = "requirements.txt"
+  }
+}
+
+resource "yandex_function" "recog_audio_n_create_pdf_func" {
+  name               = "${var.prefix}-recog-audio-n-create-pdf"
+  runtime            = "python312"
+  entrypoint         = "index.handler"
+  memory             = 512
+  execution_timeout  = 60 * 15
+  service_account_id = yandex_iam_service_account.sa.id
+  user_hash          = "v1.0"
+  folder_id          = var.folder_id
+
+  content {
+    zip_filename = data.archive_file.recog_audio_n_create_pdf_func_zip.output_path
+  }
+
+  environment = {
+    BUCKET_NAME  = yandex_storage_bucket.bucket.bucket
+    FOLDER_ID    = var.folder_id
+    YDB_ENDPOINT = "grpcs://${yandex_ydb_database_serverless.db.ydb_api_endpoint}"
+    YDB_DATABASE = yandex_ydb_database_serverless.db.database_path
+  }
+
+  secrets {
+    id                   = yandex_lockbox_secret.secret.id
+    version_id           = yandex_lockbox_secret_version.secret_version.id
+    key                  = "AWS_ACCESS_KEY_ID"
+    environment_variable = "AWS_ACCESS_KEY_ID"
+  }
+
+  secrets {
+    id                   = yandex_lockbox_secret.secret.id
+    version_id           = yandex_lockbox_secret_version.secret_version.id
+    key                  = "AWS_SECRET_ACCESS_KEY"
+    environment_variable = "AWS_SECRET_ACCESS_KEY"
+  }
+
+  secrets {
+    id                   = yandex_lockbox_secret.secret.id
+    version_id           = yandex_lockbox_secret_version.secret_version.id
+    key                  = "API_KEY"
+    environment_variable = "API_KEY"
+  }
+}
+
+# ==========================
+#         Triggers
+# ==========================
+
 resource "yandex_function_trigger" "check_url_n_download_video_trigger" {
   name      = "${var.prefix}-check-url-n-download-video-trigger"
   folder_id = var.folder_id
@@ -353,24 +527,44 @@ resource "yandex_function_trigger" "check_url_n_download_video_trigger" {
   depends_on = [yandex_message_queue.check_url_n_download_video_q]
 }
 
-resource "yandex_function" "get_all_tasks_func" {
-  name               = "${var.prefix}-get-all-tasks"
-  runtime            = "python312"
-  entrypoint         = "index.handler"
-  memory             = 512
-  execution_timeout  = 30
-  service_account_id = yandex_iam_service_account.sa.id
-  user_hash          = "v1.0"
+resource "yandex_function_trigger" "extract_audio_trigger" {
+  name      = "${var.prefix}-extract-audio-trigger"
+  folder_id = var.folder_id
 
-  content {
-    zip_filename = data.archive_file.get_all_tasks_func_zip.output_path
+  message_queue {
+    batch_cutoff       = 2
+    queue_id           = yandex_message_queue.extract_audio_q.arn
+    service_account_id = yandex_iam_service_account.sa.id
+    batch_size         = 1
   }
 
-  environment = {
-    YDB_ENDPOINT = "grpcs://${yandex_ydb_database_serverless.db.ydb_api_endpoint}"
-    YDB_DATABASE = yandex_ydb_database_serverless.db.database_path
+  function {
+    id                 = yandex_function.extract_audio_func.id
+    service_account_id = yandex_iam_service_account.sa.id
   }
+
+  depends_on = [yandex_message_queue.extract_audio_q]
 }
+
+resource "yandex_function_trigger" "recog_audio_trigger" {
+  name      = "${var.prefix}-recog-audio-trigger"
+  folder_id = var.folder_id
+
+  message_queue {
+    batch_cutoff       = 2
+    queue_id           = yandex_message_queue.recog_audio_q.arn
+    service_account_id = yandex_iam_service_account.sa.id
+    batch_size         = 1
+  }
+
+  function {
+    id                 = yandex_function.recog_audio_n_create_pdf_func.id
+    service_account_id = yandex_iam_service_account.sa.id
+  }
+
+  depends_on = [yandex_message_queue.recog_audio_q]
+}
+
 
 resource "yandex_api_gateway" "api_gw" {
   name = "${var.prefix}-api-gw"
@@ -416,5 +610,21 @@ paths:
         tag: $latest
         type: cloud_functions
         service_account_id: ${yandex_iam_service_account.sa.id}
+
+  /pdf/download/{id}:
+    get:
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+
+      x-yc-apigateway-integration:
+        bucket: ${yandex_storage_bucket.bucket.bucket}
+        type: object_storage
+        service_account_id: ${yandex_iam_service_account.sa.id}
+        object: temp/pdfs/{id}
+  
 EOT  
 }

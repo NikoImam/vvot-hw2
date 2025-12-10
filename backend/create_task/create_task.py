@@ -102,7 +102,7 @@ def handler(event, context):
         return {
             "statusCode": 400,
             "body": json.dumps({
-                'error': 'Не указана ссылка на видео'
+                "error": "Не указана ссылка на видео"
             }),
             "headers": {
                 'Content-Type': 'application/json',

@@ -112,7 +112,7 @@ def send_message_to_extract_audio_q(id, obj_key):
 
     s3_client.send_message(
         QueueUrl=extract_audio_q_url,
-        MessageBody=json.dumps({"id": id, "obj_key": obj_key})
+        MessageBody=json.dumps({"id": id, "video_obj_key": obj_key})
     )
 
 def handler(event, context):

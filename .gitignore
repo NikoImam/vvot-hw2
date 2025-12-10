@@ -248,3 +248,5 @@ pip-selfcheck.json
 
 terraform/*.zip
 .terraform.lock.hcl
+
+ffmpeg

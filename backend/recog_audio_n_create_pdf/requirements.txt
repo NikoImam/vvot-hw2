@@ -1,0 +1,3 @@
+boto3==1.40.72
+markdown-pdf==1.10
+ydb==3.22.0
