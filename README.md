@@ -34,6 +34,8 @@ terraform destroy
 
 ![architecture](Архитектура.png)
 
+> Временные файлы (аудио, видео, pdf) удаляются из приватного бакета через 1 день
+
 # Список использованных Yandex Cloud сервисов
 
 - Object Storage
