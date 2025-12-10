@@ -8,5 +8,5 @@ variable "folder_id" {
 
 variable "prefix" {
   type    = string
-  default = "vvot-05-hw2"
+  default = "vvot05-hw2"
 }

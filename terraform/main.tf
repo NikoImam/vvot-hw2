@@ -67,7 +67,7 @@ resource "yandex_resourcemanager_folder_iam_member" "ymq_admin" {
 
 resource "yandex_resourcemanager_folder_iam_member" "editor" {
   folder_id = var.folder_id
-  role      = "admin"
+  role      = "editor"
   member    = "serviceAccount:${yandex_iam_service_account.sa.id}"
 }
 
@@ -154,6 +154,7 @@ resource "yandex_ydb_table" "tasks-table" {
 resource "yandex_storage_bucket" "bucket" {
   bucket   = "${var.prefix}-bucket"
   max_size = 53e9
+  folder_id = var.folder_id
 
   lifecycle_rule {
     id      = "auto-expire"
@@ -289,6 +290,8 @@ resource "yandex_function" "create_task_func" {
     zip_filename = data.archive_file.create_task_func_zip.output_path
   }
 
+  depends_on = [ data.archive_file.create_task_func_zip ]
+
   environment = {
     YDB_ENDPOINT           = "grpcs://${yandex_ydb_database_serverless.db.ydb_api_endpoint}"
     YDB_DATABASE           = yandex_ydb_database_serverless.db.database_path
@@ -339,6 +342,8 @@ resource "yandex_function" "get_all_tasks_func" {
     zip_filename = data.archive_file.get_all_tasks_func_zip.output_path
   }
 
+  depends_on = [ data.archive_file.get_all_tasks_func_zip ]
+
   environment = {
     YDB_ENDPOINT = "grpcs://${yandex_ydb_database_serverless.db.ydb_api_endpoint}"
     YDB_DATABASE = yandex_ydb_database_serverless.db.database_path
@@ -373,6 +378,8 @@ resource "yandex_function" "check_n_download_func" {
   content {
     zip_filename = data.archive_file.check_n_download_func_zip.output_path
   }
+
+  depends_on = [ data.archive_file.check_n_download_func_zip ]
 
   environment = {
     YDB_ENDPOINT        = "grpcs://${yandex_ydb_database_serverless.db.ydb_api_endpoint}"
@@ -416,8 +423,10 @@ resource "yandex_function" "extract_audio_func" {
   memory             = 2048
   execution_timeout  = 60 * 10
   service_account_id = yandex_iam_service_account.sa.id
-  user_hash          = data.archive_file.extract_audio_func_zip.output_sha256
+  user_hash          = "v1.0"
   folder_id          = var.folder_id
+
+  depends_on = [ data.archive_file.extract_audio_func_zip ]
 
   package {
     bucket_name = yandex_storage_bucket.bucket.bucket
@@ -442,8 +451,6 @@ resource "yandex_function" "extract_audio_func" {
     key                  = "AWS_SECRET_ACCESS_KEY"
     environment_variable = "AWS_SECRET_ACCESS_KEY"
   }
-
-  depends_on = [data.archive_file.extract_audio_func_zip]
 }
 
 data "archive_file" "recog_audio_n_create_pdf_func_zip" {
@@ -474,6 +481,8 @@ resource "yandex_function" "recog_audio_n_create_pdf_func" {
   content {
     zip_filename = data.archive_file.recog_audio_n_create_pdf_func_zip.output_path
   }
+
+  depends_on = [ data.archive_file.recog_audio_n_create_pdf_func_zip ]
 
   environment = {
     BUCKET_NAME  = yandex_storage_bucket.bucket.bucket
