@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Генерация конспекта | Создание задания</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+
+<body>
+    <div class="bg-light d-flex flex-column justify-content-center align-items-center vh-100">
+    <a href="/tasks" class="btn btn-outline-secondary position-absolute top-0 end-0 m-2" role="button">Список заданий</a>
+
+        <form class="w-50 card p-2 align-items-center" id="taskForm">
+            <h3>Генерация конспекта</h3>
+            <div class="input-group flex-nowrap mt-2">
+                <span class="input-group-text">Название лекции</span>
+                <input type="text" class="form-control" placeholder="Название" id="lectureTitleInput">
+            </div>
+            <div class="input-group flex-nowrap mt-2">
+                <span class="input-group-text">Ссылка на видео</span>
+                <input type="text" class="form-control" placeholder="URL" id="urlInput">
+            </div>
+            <button type="submit" class="btn btn-primary mt-3 mb-2" id="submitBtn">
+                <span class="spinner-border spinner-border-sm d-none" aria-hidden="true" id="submitBtnSpinner"></span>
+                Создать конспект
+            </button>
+        </form>
+    </div>
+
+
+    <script>
+        document.getElementById('taskForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const urlInput = document.getElementById('urlInput')
+            const lectureTitleInput = document.getElementById('lectureTitleInput')
+            const videoLink = urlInput.value;
+            const lectureTitle = lectureTitleInput.value;
+
+            const requestBody = { "title": lectureTitle, "link": videoLink }
+
+            const submitBtn = document.getElementById('submitBtn')
+            const submitBtnSpinner = document.getElementById('submitBtnSpinner')
+
+            try {
+                submitBtn.disabled = true
+                submitBtnSpinner.classList.remove('d-none')
+                urlInput.disabled = true
+                lectureTitleInput.disabled = true
+
+                const response = await fetch('/task/create', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    respJson = await response.json();
+                    alert(respJson.error);
+
+                    submitBtn.disabled = false
+                    submitBtnSpinner.classList.add('d-none')
+                    urlInput.disabled = false
+                    lectureTitleInput.disabled = false
+
+                    return;
+                }
+
+                window.location.href = "/tasks";
+            }
+            catch (err) {
+                console.error(err)
+                alert("Ошибка при выполнении запроса");
+
+                submitBtn.disabled = false
+                submitBtnSpinner.classList.add('d-none')
+                urlInput.disabled = false
+                lectureTitleInput.disabled = false
+            }
+        })
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
